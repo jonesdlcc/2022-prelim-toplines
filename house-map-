@@ -1,0 +1,44 @@
+select * from 
+(SELECT state_house_district
+, count(*) as registered_voters
+
+---Projections
+, round(sum(clarity_2022_turnout)) as turnout_projection 
+, sum(clarity_2022_turnout*dnc_2020_dem_party_support)/sum(clarity_2022_turnout) as dem_pct_projection
+
+----Demographics 
+
+, sum(case when ethnicity_combined = 'A' then 1 else 0 end)/count(*) as aapi_voters
+, sum(case when ethnicity_combined = 'B' then 1 else 0 end)/count(*) as afam_voters
+, sum(case when ethnicity_combined = 'H' then 1 else 0 end)/count(*) as hispanic_voters
+, sum(case when ethnicity_combined = 'N' then 1 else 0 end)/count(*) as native_voters
+, sum(case when ethnicity_combined = 'W' then 1 else 0 end)/count(*) as white_voters
+
+, sum(case when age_combined between 18 and 29 then 1 else 0 end)/count(*) as age18to29_voters
+, sum(case when age_combined between 30 and 49 then 1 else 0 end)/count(*) as age30to49_voters
+, sum(case when age_combined between 50 and 64 then 1 else 0 end)/count(*) as age50to64_voters
+, sum(case when age_combined between 65 and 1000 then 1 else 0 end)/count(*) as age65plus_voters
+
+, sum(case when gender_combined = 'F' then 1 else 0 end)/count(*) as women_voters
+, sum(case when gender_combined = 'M' then 1 else 0 end)/count(*) as men_voters
+, sum(case when gender_combined = 'X' then 1 else 0 end)/count(*) as othergender_voters
+
+----Universes
+---People Count
+, sum(case when clarity_2022_turnout between 0.3 and 0.7 and dnc_2020_dem_party_support between 0.7 and 1 then 1 else 0 end) as turnout_universe_all
+, sum(case when clarity_2022_turnout between 0.7 and 1 and dnc_2020_dem_party_support between 0.4 and 0.6999 then 1 else 0 end) as persuasion_universe_all
+, sum(case when clarity_2022_turnout between 0.7 and 1 and dnc_2020_dem_party_support between 0.7 and 1 then 1 else 0 end) as base_universe_all
+
+
+from democrats.analytics.person 
+join (select distinct person_id, state_code, state_house_district, state_senate_district from  `demsdlcc.commons.person_to_new_district`) using(state_code,person_id)
+left join `democrats.scores.all_scores_2022` using(state_code,person_id)
+left join `democrats.scores.all_scores_2020` using(state_code,person_id)
+where reg_on_current_file is true 
+and reg_record_merged is false 
+and reg_voter_flag is true 
+and is_deceased is false
+and state_code = 'MD'
+group by state_house_district)
+join (select name, shape from demsdeck.deck_dlcc.district 
+where office = 'STATE HOUSE' and state = 'MD' and is_redistricted_2022 is true) on state_house_district = name
