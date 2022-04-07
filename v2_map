@@ -4,7 +4,7 @@ select * from
 
 ---Projections
 , round(sum(clarity_2022_turnout)) as turnout_projection 
-, sum(clarity_2022_turnout*dnc_2020_dem_party_support)/sum(clarity_2022_turnout) as dem_pct_projection
+, sum(clarity_2022_turnout*dnc_2022_dem_party_support)/sum(clarity_2022_turnout) as dem_pct_projection
 
 ----Demographics 
 
@@ -25,15 +25,14 @@ select * from
 
 ----Universes
 ---People Count
-, sum(case when clarity_2022_turnout between 0.3 and 0.7 and dnc_2020_dem_party_support between 0.7 and 1 then 1 else 0 end) as turnout_universe_all
-, sum(case when clarity_2022_turnout between 0.7 and 1 and dnc_2020_dem_party_support between 0.4 and 0.6999 then 1 else 0 end) as persuasion_universe_all
-, sum(case when clarity_2022_turnout between 0.7 and 1 and dnc_2020_dem_party_support between 0.7 and 1 then 1 else 0 end) as base_universe_all
+, sum(case when clarity_2022_turnout between 0.3 and 0.79999 and dnc_2022_dem_party_support between 0.8 and 1 then 1 else 0 end) as turnout_universe_all
+, sum(case when clarity_2022_turnout between 0.8 and 1 and dnc_2022_dem_party_support between 0.4 and 0.7999 then 1 else 0 end) as persuasion_universe_all
+, sum(case when clarity_2022_turnout between 0.8 and 1 and dnc_2022_dem_party_support between 0.8 and 1 then 1 else 0 end) as base_universe_all
 
 
 from democrats.analytics.person 
 join (select distinct person_id, state_code, state_house_district, state_senate_district from  `demsdlcc.commons.person_to_new_district`) using(state_code,person_id)
 left join `democrats.scores.all_scores_2022` using(state_code,person_id)
-left join `democrats.scores.all_scores_2020` using(state_code,person_id)
 where reg_on_current_file is true 
 and reg_record_merged is false 
 and reg_voter_flag is true 
