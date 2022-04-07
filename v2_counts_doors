@@ -1,0 +1,87 @@
+select 
+
+state_house_district 
+
+, count(distinct case when universe in ('Turnout', 'Persuasion', 'Base','None') then voting_address_id else null end) as basenonepersuasionturnout
+
+
+, count(distinct case when universe in ('Turnout', 'Persuasion', 'Base') then voting_address_id else null end) as basepersuasionturnout
+, count(distinct case when universe in ('None', 'Persuasion', 'Base') then voting_address_id else null end) as basenonepersuasion
+, count(distinct case when universe in ('Turnout', 'None', 'Base') then voting_address_id else null end) as basenoneturnout
+, count(distinct case when universe in ('Turnout', 'Persuasion', 'None') then voting_address_id else null end) as noneperuasionturnout
+
+
+, count(distinct case when universe in ('Persuasion', 'Base') then voting_address_id else null end) as basepersuasion
+, count(distinct case when universe in ('Turnout', 'Base') then voting_address_id else null end) as baseturnout
+, count(distinct case when universe in ('Turnout', 'Persuasion') then voting_address_id else null end) as persuasionturnout
+, count(distinct case when universe in ('Persuasion', 'None') then voting_address_id else null end) as nonepersuasion
+, count(distinct case when universe in ('Turnout', 'None') then voting_address_id else null end) as noneturnout
+, count(distinct case when universe in ('Base', 'None') then voting_address_id else null end) as basenone
+
+
+, count(distinct case when universe in ('Turnout') then voting_address_id else null end) as turnout
+, count(distinct case when universe in ('Persuasion') then voting_address_id else null end) as persuasion
+, count(distinct case when universe in ('Base') then voting_address_id else null end) as base
+, count(distinct case when universe in ('None') then voting_address_id else null end) as none
+
+
+from
+
+(SELECT state_house_district, voting_address_id
+
+, case when clarity_2022_turnout between 0.3 and 0.7999 and dnc_2022_dem_party_support between 0.8 and 1 then 'Turnout'
+ when clarity_2022_turnout between 0.8 and 1 and dnc_2022_dem_party_support between 0.4 and 0.7999 then 'Persuasion'
+when clarity_2022_turnout between 0.8 and 1 and dnc_2022_dem_party_support between 0.8 and 1 then 'Base' else 'None' end as universe 
+
+
+from democrats.analytics.person 
+join (select distinct person_id, state_code, state_house_district, state_senate_district from  `demsdlcc.commons.person_to_new_district`) using(state_code,person_id)
+left join `democrats.scores.all_scores_2022` using(state_code,person_id)
+---left join `democrats.scores.all_scores_2020` using(state_code,person_id)
+left join 
+
+(select state_code, person_id, myv_van_id
+, case when phones > 0 then 1 else null end as has_phone
+, case when cells > 0 then 1 else null end as has_cell
+ from
+(SELECT state_code
+, person_id 
+, myv_van_id 
+, sum(case when date_created_in_van is not null and is_suppressed is false then 1 else 0 end) as phones
+, sum(case when date_created_in_van is not null and is_suppressed is false and textable_flag is true then 1 else 0 end) as cells
+
+FROM `democrats.analytics.person_phone_derived` 
+group by state_code, person_id, myv_van_id)) using(state_code,person_id)
+
+left join 
+
+(with 
+
+ev_one as 
+
+(select *, row_number() over (partition by person_id order by date_early_voted desc) as row_number
+ from `democrats.analytics.person_early_votes_2020` where date_ballot_cancelled is null and date_ballot_rejected is null)
+
+, ev_two as 
+
+(select *
+from ev_one
+where row_number = 1)
+
+SELECT state_code, person_id
+, case when reporting_voted_by_mail = 1 then 'Mail'
+when reporting_voted_same_day_absentee = 1 then 'Same Day Absentee'
+when reporting_voted_early_in_person = 1 then 'EVIP' 
+when g_2020 is not null then 'Election Day' else 'Did Not Vote' end as vote_method
+, count(*) over (partition by person_id) as count_
+ FROM
+ ev_two 
+ FULL JOIN democrats.analytics.person_election_voted using(state_code,person_id)) using(state_code,person_id)
+
+where reg_on_current_file is true 
+and reg_record_merged is false 
+and reg_voter_flag is true 
+and is_deceased is false
+---**CHANGE STATE AS NEEDED***
+and state_code = 'MD')
+group by state_house_district
