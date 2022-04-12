@@ -50,7 +50,7 @@ where reg_on_current_file is true and is_deceased is false and reg_record_merged
 /*
 ---from VAN upload
 (
-select person_id, state_senate_district, state_house_district
+select state_code, person_id, state_senate_district, state_house_district
 from
 (select "Voter File VANID" as myv_van_id, sd as state_senate_district, hd as state_house_district, 'put postal abbreviation here' as state_code
 from [VAN TABLE])
