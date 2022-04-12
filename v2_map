@@ -31,7 +31,33 @@ select * from
 
 
 from democrats.analytics.person 
-join (select distinct person_id, state_code, state_house_district, state_senate_district from  `demsdlcc.commons.person_to_new_district`) using(state_code,person_id)
+
+---this is where to switch out the data source
+join 
+
+/*
+---If using the DLCC data person_to_new_district
+(select distinct person_id, state_code, state_house_district, state_senate_district from  `demsdlcc.commons.person_to_new_district`)
+*/
+
+/*
+---Directly from file
+(select distinct person_id, state_code, state_house_district_latest as state_house_district, state_senate_district_latest as state_senate_district
+from democrats.analytics.person 
+where reg_on_current_file is true and is_deceased is false and reg_record_merged is false and reg_voter_flag is true) 
+*/
+
+/*
+---from VAN upload
+(
+select person_id, state_senate_district, state_house_district
+from
+(select "Voter File VANID" as myv_van_id, sd as state_senate_district, hd as state_house_district, 'put postal abbreviation here' as state_code
+from [VAN TABLE])
+join democrats.analytics.person using(myv_van_id,state_code)
+where reg_on_current_file is true and reg_record_merged is false and reg_voter_flag is true and is_deceased is false)
+*/
+
 left join `democrats.scores.all_scores_2022` using(state_code,person_id)
 where reg_on_current_file is true 
 and reg_record_merged is false 
