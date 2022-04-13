@@ -67,3 +67,4 @@ and state_code = 'MD'
 group by state_house_district)
 join (select name, shape from demsdeck.deck_dlcc.district 
 where office = 'STATE HOUSE' and state = 'MD' and is_redistricted_2022 is true) on state_house_district = name
+order by cast(state_house_district as int)
