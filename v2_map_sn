@@ -1,0 +1,71 @@
+select * from 
+(SELECT state_house_district
+, count(*) as registered_voters
+
+---Projections
+, round(sum(clarity_2022_turnout)) as turnout_projection 
+, sum(clarity_2022_turnout*dnc_2022_dem_party_support)/sum(clarity_2022_turnout) as dem_pct_projection
+
+----Demographics 
+
+, round((sum(case when ethnicity_combined = 'A' then 1 else 0 end)/count(*))*100,2) || '%' as aapi_voters
+, round((sum(case when ethnicity_combined = 'B' then 1 else 0 end)/count(*))*100,2) || '%' as afam_voters
+, round((sum(case when ethnicity_combined = 'H' then 1 else 0 end)/count(*))*100,2) || '%' as hispanic_voters
+, round((sum(case when ethnicity_combined = 'N' then 1 else 0 end)/count(*))*100,2) || '%' as native_voters
+, round((sum(case when ethnicity_combined = 'W' then 1 else 0 end)/count(*))*100,2) || '%' as white_voters
+
+, round((sum(case when age_combined between 18 and 29 then 1 else 0 end)/count(*))*100,2) || '%' as age18to29_voters
+, round((sum(case when age_combined between 30 and 49 then 1 else 0 end)/count(*))*100,2) || '%' as age30to49_voters
+, round((sum(case when age_combined between 50 and 64 then 1 else 0 end)/count(*))*100,2) || '%' as age50to64_voters
+, round((sum(case when age_combined between 65 and 1000 then 1 else 0 end)/count(*))*100,2) || '%' as age65plus_voters
+
+, round((sum(case when gender_combined = 'F' then 1 else 0 end)/count(*))*100,2) || '%' as women_voters
+, round((sum(case when gender_combined = 'M' then 1 else 0 end)/count(*))*100,2) || '%' as men_voters
+, round((sum(case when gender_combined = 'X' then 1 else 0 end)/count(*))*100,2) || '%' as othergender_voters
+
+----Universes
+---People Count
+, sum(case when clarity_2022_turnout between 0.3 and 0.79999 and dnc_2022_dem_party_support between 0.8 and 1 then 1 else 0 end) as turnout_universe_all
+, sum(case when clarity_2022_turnout between 0.8 and 1 and dnc_2022_dem_party_support between 0.4 and 0.7999 then 1 else 0 end) as persuasion_universe_all
+, sum(case when clarity_2022_turnout between 0.8 and 1 and dnc_2022_dem_party_support between 0.8 and 1 then 1 else 0 end) as base_universe_all
+
+
+from democrats.analytics.person 
+
+---this is where to switch out the data source
+join 
+
+/*
+---If using the DLCC data person_to_new_district
+(select distinct person_id, state_code, state_house_district, state_senate_district from  `demsdlcc.commons.person_to_new_district`)
+*/
+
+/*
+---Directly from file
+(select distinct person_id, state_code, state_house_district_latest as state_house_district, state_senate_district_latest as state_senate_district
+from democrats.analytics.person 
+where reg_on_current_file is true and is_deceased is false and reg_record_merged is false and reg_voter_flag is true) 
+*/
+
+/*
+---from VAN upload
+(
+select state_code, person_id, state_senate_district, state_house_district
+from
+(select "Voter File VANID" as myv_van_id, sd as state_senate_district, hd as state_house_district, 'put postal abbreviation here' as state_code
+from [VAN TABLE])
+join democrats.analytics.person using(myv_van_id,state_code)
+where reg_on_current_file is true and reg_record_merged is false and reg_voter_flag is true and is_deceased is false)
+*/
+using(state_code,person_id)
+
+left join `democrats.scores.all_scores_2022` using(state_code,person_id)
+where reg_on_current_file is true 
+and reg_record_merged is false 
+and reg_voter_flag is true 
+and is_deceased is false
+and state_code = 'MD'
+group by state_house_district)
+join (select name, shape from demsdeck.deck_dlcc.district 
+where office = 'STATE HOUSE' and state = 'MD' and is_redistricted_2022 is true) on state_house_district = name
+---order by cast(state_house_district as int)
