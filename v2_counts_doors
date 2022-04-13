@@ -1,6 +1,6 @@
 select 
 
-state_house_district 
+state_senate_district 
 
 , count(distinct case when universe in ('Turnout', 'Persuasion', 'Base','None') then voting_address_id else null end) as basenonepersuasionturnout
 
@@ -27,7 +27,7 @@ state_house_district
 
 from
 
-(SELECT state_house_district, voting_address_id
+(SELECT state_senate_district, voting_address_id
 
 , case when clarity_2022_turnout between 0.3 and 0.7999 and dnc_2022_dem_party_support between 0.8 and 1 then 'Turnout'
  when clarity_2022_turnout between 0.8 and 1 and dnc_2022_dem_party_support between 0.4 and 0.7999 then 'Persuasion'
@@ -111,5 +111,5 @@ and reg_record_merged is false
 and reg_voter_flag is true 
 and is_deceased is false
 ---**CHANGE STATE AS NEEDED***
-and state_code = 'MD')
-group by state_house_district
+and state_code = 'MN')
+group by state_senate_district
