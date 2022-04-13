@@ -57,6 +57,7 @@ from [VAN TABLE])
 join democrats.analytics.person using(myv_van_id,state_code)
 where reg_on_current_file is true and reg_record_merged is false and reg_voter_flag is true and is_deceased is false)
 */
+using(state_code,person_id)
 
 left join `democrats.scores.all_scores_2022` using(state_code,person_id)
 where reg_on_current_file is true 
@@ -67,4 +68,4 @@ and state_code = 'MD'
 group by state_house_district)
 join (select name, shape from demsdeck.deck_dlcc.district 
 where office = 'STATE HOUSE' and state = 'MD' and is_redistricted_2022 is true) on state_house_district = name
-order by cast(state_house_district as int)
+---order by cast(state_house_district as int)
