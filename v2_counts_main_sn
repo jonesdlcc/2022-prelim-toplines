@@ -27,10 +27,10 @@ from democrats.analytics.person
 ---this is where to switch out the data source
 join 
 
-/*
+
 ---If using the DLCC data person_to_new_district
 (select distinct person_id, state_code, state_house_district, state_senate_district from  `demsdlcc.commons.person_to_new_district`)
-*/
+
 
 /*
 ---Directly from file
