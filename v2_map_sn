@@ -1,5 +1,5 @@
 select * from 
-(SELECT state_house_district
+(SELECT state_senate_district
 , count(*) as registered_voters
 
 ---Projections
@@ -35,10 +35,10 @@ from democrats.analytics.person
 ---this is where to switch out the data source
 join 
 
-/*
+
 ---If using the DLCC data person_to_new_district
 (select distinct person_id, state_code, state_house_district, state_senate_district from  `demsdlcc.commons.person_to_new_district`)
-*/
+
 
 /*
 ---Directly from file
@@ -64,8 +64,8 @@ where reg_on_current_file is true
 and reg_record_merged is false 
 and reg_voter_flag is true 
 and is_deceased is false
-and state_code = 'MD'
-group by state_house_district)
+and state_code = 'MN'
+group by state_senate_district)
 join (select name, shape from demsdeck.deck_dlcc.district 
-where office = 'STATE HOUSE' and state = 'MD' and is_redistricted_2022 is true) on state_house_district = name
----order by cast(state_house_district as int)
+where office = 'STATE SENATE' and state = 'MN' and is_redistricted_2022 is true) on state_senate_district = name
+order by cast(state_senate_district as int)
